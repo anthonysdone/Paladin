@@ -27,7 +27,7 @@ class Sim:
         self.tasks = []
         self.cycle = 0
     
-    def reg(self, init=0):
+    def reg(self, init):
         r = Reg(init)
         self.regs.append(r)
         return r
