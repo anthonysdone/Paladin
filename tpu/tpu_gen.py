@@ -164,6 +164,55 @@ def gemm(A, B, C, M, K, N):
             D[i][j] += C[i][j]
     return D
 
+def test_tpu(M, K, N, T, A, B, C):
+        program = [
+            ("mnk", M, N, K),
+            ("tile", T), 
+            ("gemm",),
+            ("halt",)
+        ]
+
+        sim, outputs = gen_tpu(T, program)
+
+        mem_init = [0] * 4096
+        for r in range(M):
+            for c in range(K):
+                mem_init[r * K + c] = A[r][c]
+        for r in range(K):
+            for c in range(N):
+                mem_init[M * K + r * N + c] = B[r][c]
+        for r in range(M):
+            for c in range(N):
+                mem_init[M * K + K * N + r * N + c] = C[r][c]
+
+        outputs["mem"].val = mem_init
+        outputs["mem"].next = mem_init
+
+        max_cycles = 10000
+        cycle_count = 0
+        while not outputs["halted"].val and outputs["cycle"].val < max_cycles:
+            sim.step()
+            cycle_count += 1
+        
+        actual_c = []
+        for r in range(M):
+            row = []
+            for c in range(N):
+                row.append(outputs["mem"].val[M * K + K * N + r * N + c])
+            actual_c.append(row)
+
+        print(f"Simulation ended: halted={outputs['halted'].val}, cycle={outputs['cycle'].val}, total_steps={cycle_count}")
+        print(f"Final state: {outputs['state'].val}")
+        
+        print("Actual:")
+        for row in actual_c:
+            print(row)
+
+        expected = gemm(A, B, C, M, K, N)
+        print("Expected:")
+        for row in expected:
+            print(row)
+
 
 if __name__ == "__main__":
     M, K, N = 4, 4, 4
@@ -197,51 +246,6 @@ if __name__ == "__main__":
         [10, 0, 10, 0]
     ]
 
-    program = [
-        ("mnk", M, N, K),
-        ("tile", T), 
-        ("gemm",),
-        ("halt",)
-    ]
+    test_tpu(M, K, N, T, A, B, C)
 
-    sim, outputs = gen_tpu(T, program)
-
-    mem_init = [0] * 4096
-    for r in range(M):
-        for c in range(K):
-            mem_init[r * K + c] = A[r][c]
-    for r in range(K):
-        for c in range(N):
-            mem_init[M * K + r * N + c] = D[r][c]
-    for r in range(M):
-        for c in range(N):
-            mem_init[M * K + K * N + r * N + c] = C[r][c]
-
-    outputs["mem"].val = mem_init
-    outputs["mem"].next = mem_init
-
-    max_cycles = 10000
-    cycle_count = 0
-    while not outputs["halted"].val and outputs["cycle"].val < max_cycles:
-        sim.step()
-        cycle_count += 1
-    
-    actual_c = []
-    for r in range(M):
-        row = []
-        for c in range(N):
-            row.append(outputs["mem"].val[M * K + K * N + r * N + c])
-        actual_c.append(row)
-
-    print(f"Simulation ended: halted={outputs['halted'].val}, cycle={outputs['cycle'].val}, total_steps={cycle_count}")
-    print(f"Final state: {outputs['state'].val}")
-    
-    print("Actual:")
-    for row in actual_c:
-        print(row)
-
-    expected = gemm(A, D, C, M, K, N)
-    print("Expected:")
-    for row in expected:
-        print(row)
     
