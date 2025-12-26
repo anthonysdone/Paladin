@@ -1,6 +1,8 @@
 .section .text
 .global _start
 
+# i give up trying to debug this, i think the tpu is a bit simpler so i will just write that for now
+
 _start: 
     li x3, 16          # x3 = n
     li x4, 0           # x4 = i
