@@ -201,9 +201,6 @@ def test_tpu(M, K, N, T, A, B, C):
                 row.append(outputs["mem"].val[M * K + K * N + r * N + c])
             actual_c.append(row)
 
-        print(f"Simulation ended: halted={outputs['halted'].val}, cycle={outputs['cycle'].val}, total_steps={cycle_count}")
-        print(f"Final state: {outputs['state'].val}")
-        
         print("Actual:")
         for row in actual_c:
             print(row)
